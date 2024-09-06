@@ -63,3 +63,178 @@ GRANT  INSERT, UPDATE, DELETE, SELECT on <nome_do_objeto> TO 'dev'@'%' WITH GRAN
 8. testar usuário db_user
 
 $sudo mysql -u db_user -p
+
+############### PARTE 2  ##############################
+
+1. No Virtualbox redirecione a porta 3306 do hospedeiro para 3306 da máquina convidada.(agora vc pode conectar via putty)
+
+2. No cliente é necessário definir a variável para aceitar o certificado digital
+
+allowPublicKeyRetrieval=true
+
+    For DBeaver users:
+
+    Right-click your connection, choose "Edit Connection"
+
+    On the "Connection settings" screen (main screen), click on "Edit Driver Settings"
+
+    Click on "Driver properties"
+
+    Change two properties: "useSSL" and "allowPublicKeyRetrieval"
+
+    Set their values to "false" and "true" by double-clicking on the "value" column
+
+3. Conectar com o cliente DBeaver
+
+4. Crie seu primeiro banco de dados
+CREATE DATABASE HelloMysql;
+
+5. Adeus primeiro BD
+DROP DATABASE HelloMysql;
+
+
+####Reiniciar o serviço do MySQL####
+$ sudo service mysql restart
+
+####troubleshooting####
+$ sudo journalctl -u mysql
+#Crie o banco de dados
+mysql> CREATE DATABASE university;
+
+
+#Selecione o banco de dados a ser manipulado ou definido
+mysql> use university;
+
+
+#Execute o seguinte script de criação do banco de dados
+create table classroom
+    (building        varchar(15),
+     room_number        varchar(7),
+     capacity        numeric(4,0),
+     primary key (building, room_number)
+    );
+
+create table department
+    (dept_name        varchar(20),
+     building        varchar(15),
+     budget                numeric(12,2) check (budget > 0),
+     primary key (dept_name)
+    );
+
+create table course
+    (course_id        varchar(8),
+     title            varchar(50),
+     dept_name        varchar(20),
+     credits        numeric(2,0) check (credits > 0),
+     primary key (course_id),
+     foreign key (dept_name) references department (dept_name)
+        on delete set null
+    );
+
+create table instructor
+    (ID            varchar(5),
+     name            varchar(20) not null,
+     dept_name        varchar(20),
+     salary            numeric(8,2) check (salary > 29000),
+     primary key (ID),
+     foreign key (dept_name) references department (dept_name)
+        on delete set null
+    );
+
+create table section
+    (course_id        varchar(8),
+         sec_id            varchar(8),
+     semester        varchar(6)
+        check (semester in ('Fall', 'Winter', 'Spring', 'Summer')),
+     year            numeric(4,0) check (year > 1701 and year < 2100),
+     building        varchar(15),
+     room_number        varchar(7),
+     time_slot_id        varchar(4),
+     primary key (course_id, sec_id, semester, year),
+     foreign key (course_id) references course (course_id)
+        on delete cascade,
+     foreign key (building, room_number) references classroom (building, room_number)
+        on delete set null
+    );
+
+create table teaches
+    (ID            varchar(5),
+     course_id        varchar(8),
+     sec_id            varchar(8),
+     semester        varchar(6),
+     year            numeric(4,0),
+     primary key (ID, course_id, sec_id, semester, year),
+     foreign key (course_id, sec_id, semester, year) references section (course_id, sec_id, semester, year)
+        on delete cascade,
+     foreign key (ID) references instructor (ID)
+        on delete cascade
+    );
+
+create table student
+    (ID            varchar(5),
+     name            varchar(20) not null,
+     dept_name        varchar(20),
+     tot_cred        numeric(3,0) check (tot_cred >= 0),
+     primary key (ID),
+     foreign key (dept_name) references department (dept_name)
+        on delete set null
+    );
+
+create table takes
+    (ID            varchar(5),
+     course_id        varchar(8),
+     sec_id            varchar(8),
+     semester        varchar(6),
+     year            numeric(4,0),
+     grade                varchar(2),
+     primary key (ID, course_id, sec_id, semester, year),
+     foreign key (course_id, sec_id, semester, year) references section (course_id, sec_id, semester, year)
+        on delete cascade,
+     foreign key (ID) references student (ID)
+        on delete cascade
+    );
+
+create table advisor
+    (s_ID            varchar(5),
+     i_ID            varchar(5),
+     primary key (s_ID),
+     foreign key (i_ID) references instructor (ID)
+        on delete set null,
+     foreign key (s_ID) references student (ID)
+        on delete cascade
+    );
+
+create table time_slot
+    (time_slot_id        varchar(4),
+     day            varchar(1),
+     start_hr        numeric(2) check (start_hr >= 0 and start_hr < 24),
+     start_min        numeric(2) check (start_min >= 0 and start_min < 60),
+     end_hr            numeric(2) check (end_hr >= 0 and end_hr < 24),
+     end_min        numeric(2) check (end_min >= 0 and end_min < 60),
+     primary key (time_slot_id, day, start_hr, start_min)
+    );
+
+create table prereq
+    (course_id        varchar(8),
+     prereq_id        varchar(8),
+     primary key (course_id, prereq_id),
+     foreign key (course_id) references course (course_id)
+        on delete cascade,
+     foreign key (prereq_id) references course (course_id)
+    );
+
+#vamos trabalhar algumas deleções
+drop table student;
+drop table teaches;
+drop table section;
+drop table instructor;
+drop table course;
+drop table department;
+drop table classroom;
+
+ALTER TABLE course ADD description VARCHAR(100);
+ALTER TABLE course ALTER COLUMN credits NUMERIC(3,1);
+ALTER TABLE course RENAME COLUMN title TO course_title;
+ALTER TABLE course DROP COLUMN description;
+
+*Execute o arquivo smallRelationsInsertFile.sql*/
