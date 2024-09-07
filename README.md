@@ -238,3 +238,71 @@ ALTER TABLE course RENAME COLUMN title TO course_title;
 ALTER TABLE course DROP COLUMN description;
 
 *Execute o arquivo smallRelationsInsertFile.sql*/
+
+/*Cria uma trigger verificando se o estudante é calouro*/
+CREATE TRIGGER trigger_check_student_freshman
+BEFORE INSERT ON takes
+FOR EACH ROW
+BEGIN
+    DECLARE student_count INT;
+    DECLARE error_message VARCHAR(255);
+   
+    SELECT COUNT(*) INTO student_count
+    FROM takes
+    WHERE ID = NEW.ID;
+   
+    IF student_count = 0 THEN
+        SET error_message = CONCAT('O aluno com ID ', NEW.ID, ' é um calouro');
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_message;
+    END IF;
+END;
+
+
+SELECT COUNT(*)
+    FROM takes
+    WHERE ID = '12346';
+
+SELECT ID, course_id, sec_id, semester, `year`, grade
+FROM university.takes where ID = '12346';
+
+INSERT INTO student VALUE('12346', 'Ana', 'Comp. Sci.', 0);
+
+SELECT course_id, sec_id, semester, `year`, building, room_number, time_slot_id
+FROM university.`section` WHERE course_id = 'CS-101';
+
+INSERT INTO university.`section`
+(course_id, sec_id, semester, `year`, building, room_number, time_slot_id)
+VALUES('CS-101', '3', 'Summer', 2024, 'Packard', '101', 'F');
+
+SELECT ID, course_id, sec_id, semester, `year`, grade
+FROM university.takes where ID = '12346';
+
+INSERT INTO takes
+(ID, course_id, sec_id, semester, `year`, grade)
+VALUES('12346', '584', '3', 'Summer', 2024, 'B ');
+
+
+CREATE VIEW student_takes_view AS
+SELECT
+    s.ID AS student_id,
+    s.name AS student_name,
+    s.dept_name AS student_department,
+    s.tot_cred AS student_total_credits,
+    t.course_id,
+    t.sec_id,
+    t.semester,
+    t.year,
+    t.grade
+FROM
+    student s
+JOIN
+    takes t ON s.ID = t.ID;
+   
+SELECT * FROM student_takes_view;
+
+CREATE INDEX idx_student_id ON student (ID);
+CREATE INDEX idx_takes_id ON takes (ID);
+
+SHOW INDEX FROM student ;
+
+EXPLAIN SELECT * FROM student_takes_view;
